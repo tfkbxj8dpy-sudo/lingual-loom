@@ -13,6 +13,7 @@ import Books from "./pages/Books";
 import Music from "./pages/Music";
 import Speaking from "./pages/Speaking";
 import Grammar from "./pages/Grammar";
+import Categories from "./pages/Categories";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/music" element={<Music />} />
           <Route path="/speaking" element={<Speaking />} />
           <Route path="/grammar" element={<Grammar />} />
+          <Route path="/categories" element={<Categories />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
