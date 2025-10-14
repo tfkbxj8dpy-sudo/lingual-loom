@@ -103,11 +103,24 @@ const Dashboard = () => {
       return;
     }
 
-    const { error } = await supabase.from("words").insert({
-      ...newWord,
+    const wordData: any = {
+      word: newWord.word,
+      definition: newWord.definition,
       language_id: languageData.id,
       user_id: user.id,
-    });
+    };
+
+    if (newWord.example_sentence) {
+      wordData.example_sentence = newWord.example_sentence;
+    }
+    if (newWord.image_url) {
+      wordData.image_url = newWord.image_url;
+    }
+    if (newWord.category_id) {
+      wordData.category_id = newWord.category_id;
+    }
+
+    const { error } = await supabase.from("words").insert(wordData);
 
     if (error) {
       toast({
