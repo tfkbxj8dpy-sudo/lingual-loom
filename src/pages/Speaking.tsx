@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Mic } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ import {
 const Speaking = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage } = useLanguage();
   const [topics, setTopics] = useState<any[]>([]);
   const [isAddTopicOpen, setIsAddTopicOpen] = useState(false);
   const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
@@ -37,7 +39,7 @@ const Speaking = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchTopics();
+        if (selectedLanguage) fetchTopics();
       }
     });
 
@@ -45,17 +47,20 @@ const Speaking = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchTopics();
+        if (selectedLanguage) fetchTopics();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedLanguage]);
 
   const fetchTopics = async () => {
+    if (!selectedLanguage) return;
+
     const { data: topicsData } = await supabase
       .from("speaking_topics")
       .select("*, speaking_questions(*)")
+      .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
     
     if (topicsData) setTopics(topicsData);
@@ -71,19 +76,12 @@ const Speaking = () => {
       return;
     }
 
-    const { data: languageData } = await supabase
-      .from("languages")
-      .select("id")
-      .limit(1)
-      .single();
-
-    if (!languageData) {
+    if (!selectedLanguage) {
       toast({
         title: "Error",
-        description: "Please add a language first",
+        description: "Please select a language first",
         variant: "destructive",
       });
-      navigate("/languages");
       return;
     }
 
@@ -92,7 +90,7 @@ const Speaking = () => {
 
     const { error } = await supabase.from("speaking_topics").insert({
       title: newTopic,
-      language_id: languageData.id,
+      language_id: selectedLanguage,
       user_id: user.id,
     });
 

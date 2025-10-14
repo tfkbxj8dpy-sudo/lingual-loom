@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
 const Movies = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage } = useLanguage();
   const [movies, setMovies] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newMovie, setNewMovie] = useState({
@@ -34,7 +36,7 @@ const Movies = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchMovies();
+        if (selectedLanguage) fetchMovies();
       }
     });
 
@@ -42,19 +44,22 @@ const Movies = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchMovies();
+        if (selectedLanguage) fetchMovies();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedLanguage]);
 
   const fetchMovies = async () => {
+    if (!selectedLanguage) return;
+
     const { data } = await supabase
       .from("movies")
       .select("*")
+      .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
-    
+
     if (data) setMovies(data);
   };
 
@@ -68,19 +73,12 @@ const Movies = () => {
       return;
     }
 
-    const { data: languageData } = await supabase
-      .from("languages")
-      .select("id")
-      .limit(1)
-      .single();
-
-    if (!languageData) {
+    if (!selectedLanguage) {
       toast({
         title: "Error",
-        description: "Please add a language first",
+        description: "Please select a language first",
         variant: "destructive",
       });
-      navigate("/languages");
       return;
     }
 
@@ -89,7 +87,7 @@ const Movies = () => {
 
     const { error } = await supabase.from("movies").insert({
       ...newMovie,
-      language_id: languageData.id,
+      language_id: selectedLanguage,
       user_id: user.id,
     });
 

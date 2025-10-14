@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import {
 const Grammar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage } = useLanguage();
   const [rules, setRules] = useState<any[]>([]);
   const [isAddRuleOpen, setIsAddRuleOpen] = useState(false);
   const [isAddExerciseOpen, setIsAddExerciseOpen] = useState(false);
@@ -42,7 +44,7 @@ const Grammar = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchRules();
+        if (selectedLanguage) fetchRules();
       }
     });
 
@@ -50,17 +52,20 @@ const Grammar = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchRules();
+        if (selectedLanguage) fetchRules();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedLanguage]);
 
   const fetchRules = async () => {
+    if (!selectedLanguage) return;
+
     const { data: rulesData } = await supabase
       .from("grammar_rules")
       .select("*, grammar_exercises(*)")
+      .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
     
     if (rulesData) setRules(rulesData);
@@ -76,19 +81,12 @@ const Grammar = () => {
       return;
     }
 
-    const { data: languageData } = await supabase
-      .from("languages")
-      .select("id")
-      .limit(1)
-      .single();
-
-    if (!languageData) {
+    if (!selectedLanguage) {
       toast({
         title: "Error",
-        description: "Please add a language first",
+        description: "Please select a language first",
         variant: "destructive",
       });
-      navigate("/languages");
       return;
     }
 
@@ -97,7 +95,7 @@ const Grammar = () => {
 
     const { error } = await supabase.from("grammar_rules").insert({
       ...newRule,
-      language_id: languageData.id,
+      language_id: selectedLanguage,
       user_id: user.id,
     });
 

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   BookOpen,
@@ -26,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Select,
   SelectContent,
@@ -47,29 +47,7 @@ const menuItems = [
 export function AppSidebar() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [languages, setLanguages] = useState<any[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("");
-
-  useEffect(() => {
-    fetchLanguages();
-  }, []);
-
-  const fetchLanguages = async () => {
-    const { data, error } = await supabase
-      .from("languages")
-      .select("*")
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Error fetching languages:", error);
-      return;
-    }
-
-    if (data && data.length > 0) {
-      setLanguages(data);
-      setSelectedLanguage(data[0].id);
-    }
-  };
+  const { selectedLanguage, setSelectedLanguage, languages } = useLanguage();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();

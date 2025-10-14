@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
 const Music = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage } = useLanguage();
   const [songs, setSongs] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newSong, setNewSong] = useState({
@@ -34,7 +36,7 @@ const Music = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchSongs();
+        if (selectedLanguage) fetchSongs();
       }
     });
 
@@ -42,19 +44,22 @@ const Music = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchSongs();
+        if (selectedLanguage) fetchSongs();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedLanguage]);
 
   const fetchSongs = async () => {
+    if (!selectedLanguage) return;
+
     const { data } = await supabase
       .from("music")
       .select("*")
+      .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
-    
+
     if (data) setSongs(data);
   };
 
@@ -68,19 +73,12 @@ const Music = () => {
       return;
     }
 
-    const { data: languageData } = await supabase
-      .from("languages")
-      .select("id")
-      .limit(1)
-      .single();
-
-    if (!languageData) {
+    if (!selectedLanguage) {
       toast({
         title: "Error",
-        description: "Please add a language first",
+        description: "Please select a language first",
         variant: "destructive",
       });
-      navigate("/languages");
       return;
     }
 
@@ -89,7 +87,7 @@ const Music = () => {
 
     const { error } = await supabase.from("music").insert({
       ...newSong,
-      language_id: languageData.id,
+      language_id: selectedLanguage,
       user_id: user.id,
     });
 

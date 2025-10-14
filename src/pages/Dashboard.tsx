@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, FolderPlus, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ import {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [words, setWords] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -47,6 +49,7 @@ const Dashboard = () => {
         navigate("/auth");
       } else {
         setUser(session.user);
+        if (selectedLanguage) fetchData();
       }
     });
 
@@ -55,22 +58,26 @@ const Dashboard = () => {
         navigate("/auth");
       } else {
         setUser(session.user);
-        fetchData();
+        if (selectedLanguage) fetchData();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedLanguage]);
 
   const fetchData = async () => {
+    if (!selectedLanguage) return;
+
     const { data: wordsData } = await supabase
       .from("words")
       .select("*, categories(*)")
+      .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
     
     const { data: categoriesData } = await supabase
       .from("categories")
       .select("*")
+      .eq("language_id", selectedLanguage)
       .order("name");
 
     if (wordsData) setWords(wordsData);
@@ -87,26 +94,19 @@ const Dashboard = () => {
       return;
     }
 
-    const { data: languageData } = await supabase
-      .from("languages")
-      .select("id")
-      .limit(1)
-      .single();
-
-    if (!languageData) {
+    if (!selectedLanguage) {
       toast({
         title: "Error",
-        description: "Please add a language first",
+        description: "Please select a language first",
         variant: "destructive",
       });
-      navigate("/languages");
       return;
     }
 
     const wordData: any = {
       word: newWord.word,
       definition: newWord.definition,
-      language_id: languageData.id,
+      language_id: selectedLanguage,
       user_id: user.id,
     };
 

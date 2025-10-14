@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
 const Books = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage } = useLanguage();
   const [books, setBooks] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newBook, setNewBook] = useState({
@@ -35,7 +37,7 @@ const Books = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchBooks();
+        if (selectedLanguage) fetchBooks();
       }
     });
 
@@ -43,19 +45,22 @@ const Books = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchBooks();
+        if (selectedLanguage) fetchBooks();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedLanguage]);
 
   const fetchBooks = async () => {
+    if (!selectedLanguage) return;
+
     const { data } = await supabase
       .from("books")
       .select("*")
+      .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
-    
+
     if (data) setBooks(data);
   };
 
@@ -69,19 +74,12 @@ const Books = () => {
       return;
     }
 
-    const { data: languageData } = await supabase
-      .from("languages")
-      .select("id")
-      .limit(1)
-      .single();
-
-    if (!languageData) {
+    if (!selectedLanguage) {
       toast({
         title: "Error",
-        description: "Please add a language first",
+        description: "Please select a language first",
         variant: "destructive",
       });
-      navigate("/languages");
       return;
     }
 
@@ -90,7 +88,7 @@ const Books = () => {
 
     const { error } = await supabase.from("books").insert({
       ...newBook,
-      language_id: languageData.id,
+      language_id: selectedLanguage,
       user_id: user.id,
     });
 

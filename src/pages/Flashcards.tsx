@@ -8,10 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Flashcards = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage } = useLanguage();
   const [words, setWords] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -21,7 +23,7 @@ const Flashcards = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchWords();
+        if (selectedLanguage) fetchWords();
       }
     });
 
@@ -29,17 +31,20 @@ const Flashcards = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        fetchWords();
+        if (selectedLanguage) fetchWords();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedLanguage]);
 
   const fetchWords = async () => {
+    if (!selectedLanguage) return;
+
     const { data } = await supabase
       .from("words")
       .select("*")
+      .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
     
     if (data) setWords(data);
