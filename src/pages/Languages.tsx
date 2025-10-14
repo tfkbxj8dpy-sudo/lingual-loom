@@ -6,8 +6,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,16 @@ const Languages = () => {
     name: "",
     flag_emoji: "",
   });
+  const [isAddingStarter, setIsAddingStarter] = useState(false);
+
+  const starterLanguages = [
+    { name: "English", flag: "🇬🇧" },
+    { name: "Spanish", flag: "🇪🇸" },
+    { name: "French", flag: "🇫🇷" },
+    { name: "German", flag: "🇩🇪" },
+    { name: "Portuguese", flag: "🇵🇹" },
+    { name: "Italian", flag: "🇮🇹" },
+  ];
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -108,6 +119,36 @@ const Languages = () => {
     }
   };
 
+  const handleAddStarterLanguage = async (languageName: string, flagEmoji: string) => {
+    setIsAddingStarter(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setIsAddingStarter(false);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("create_starter_language_data", {
+      p_user_id: user.id,
+      p_language_name: languageName,
+      p_flag_emoji: flagEmoji,
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: `Failed to add ${languageName}: ${error.message}`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `${languageName} added with 6 categories and 5 starter words!`,
+      });
+      fetchLanguages();
+    }
+    setIsAddingStarter(false);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -121,7 +162,8 @@ const Languages = () => {
           </header>
 
           <div className="p-6 space-y-6">
-            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <div className="flex gap-4 flex-wrap">
+              <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-primary">
                   <Plus className="w-4 h-4 mr-2" />
@@ -149,6 +191,38 @@ const Languages = () => {
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
+
+            <Card className="bg-gradient-subtle border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Quick Start - Popular Languages
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Add a language with 6 categories and 5 starter words to begin learning immediately.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {starterLanguages.map((lang) => (
+                    <Button
+                      key={lang.name}
+                      variant="outline"
+                      onClick={() => handleAddStarterLanguage(lang.name, lang.flag)}
+                      disabled={isAddingStarter || languages.some(l => l.name === lang.name)}
+                      className="border-primary/50 hover:bg-primary/10"
+                    >
+                      <span className="mr-2">{lang.flag}</span>
+                      {lang.name}
+                      {languages.some(l => l.name === lang.name) && (
+                        <Badge variant="secondary" className="ml-2">Added</Badge>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {languages.map((lang) => (
