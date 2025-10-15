@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Mic } from "lucide-react";
+import { Plus, Mic, Square, Play, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -33,6 +34,13 @@ const Speaking = () => {
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [newTopic, setNewTopic] = useState("");
   const [newQuestion, setNewQuestion] = useState("");
+  const [isRecordingOpen, setIsRecordingOpen] = useState(false);
+  const [selectedQuestionId, setSelectedQuestionId] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingNotes, setRecordingNotes] = useState("");
+  const [recordings, setRecordings] = useState<any[]>([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -64,6 +72,118 @@ const Speaking = () => {
       .order("created_at", { ascending: false });
     
     if (topicsData) setTopics(topicsData);
+  };
+
+  const fetchRecordings = async (questionId: string) => {
+    const { data } = await supabase
+      .from("speaking_recordings")
+      .select("*")
+      .eq("question_id", questionId)
+      .order("created_at", { ascending: false });
+    
+    if (data) setRecordings(data);
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          await saveRecording(base64Audio);
+        };
+        
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      
+      toast({
+        title: "Recording",
+        description: "Recording started",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to access microphone",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const saveRecording = async (audioData: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("speaking_recordings").insert({
+      question_id: selectedQuestionId,
+      recording_url: audioData,
+      notes: recordingNotes,
+      user_id: user.id,
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save recording",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Recording saved successfully",
+      });
+      setRecordingNotes("");
+      fetchRecordings(selectedQuestionId);
+    }
+  };
+
+  const deleteRecording = async (recordingId: string) => {
+    const { error } = await supabase
+      .from("speaking_recordings")
+      .delete()
+      .eq("id", recordingId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete recording",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Recording deleted",
+      });
+      fetchRecordings(selectedQuestionId);
+    }
+  };
+
+  const playRecording = (audioUrl: string) => {
+    const audio = new Audio(audioUrl);
+    audio.play();
   };
 
   const handleAddTopic = async () => {
@@ -218,10 +338,9 @@ const Speaking = () => {
                             size="sm"
                             className="mt-2"
                             onClick={() => {
-                              toast({
-                                title: "Coming Soon",
-                                description: "Recording feature will be available soon",
-                              });
+                              setSelectedQuestionId(question.id);
+                              fetchRecordings(question.id);
+                              setIsRecordingOpen(true);
                             }}
                           >
                             <Mic className="w-4 h-4 mr-2" />
@@ -249,6 +368,76 @@ const Speaking = () => {
                   <Button onClick={handleAddQuestion} className="w-full">
                     Add Question
                   </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isRecordingOpen} onOpenChange={setIsRecordingOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Record Answer</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    {!isRecording ? (
+                      <Button onClick={startRecording} className="flex-1">
+                        <Mic className="w-4 h-4 mr-2" />
+                        Start Recording
+                      </Button>
+                    ) : (
+                      <Button onClick={stopRecording} variant="destructive" className="flex-1">
+                        <Square className="w-4 h-4 mr-2" />
+                        Stop Recording
+                      </Button>
+                    )}
+                  </div>
+
+                  <Textarea
+                    placeholder="Add notes about your answer..."
+                    value={recordingNotes}
+                    onChange={(e) => setRecordingNotes(e.target.value)}
+                    rows={3}
+                  />
+
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold mb-3">Previous Recordings</h4>
+                    <div className="space-y-2">
+                      {recordings.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No recordings yet</p>
+                      ) : (
+                        recordings.map((recording) => (
+                          <Card key={recording.id}>
+                            <CardContent className="p-3 flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(recording.created_at).toLocaleString()}
+                                </p>
+                                {recording.notes && (
+                                  <p className="text-sm mt-1">{recording.notes}</p>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => playRecording(recording.recording_url)}
+                                >
+                                  <Play className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => deleteRecording(recording.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
