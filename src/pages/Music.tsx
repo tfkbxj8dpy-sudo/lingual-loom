@@ -143,18 +143,26 @@ const Music = () => {
                     value={newSong.artist}
                     onChange={(e) => setNewSong({ ...newSong, artist: e.target.value })}
                   />
-                  <Textarea
-                    placeholder="Lyrics"
-                    value={newSong.lyrics}
-                    onChange={(e) => setNewSong({ ...newSong, lyrics: e.target.value })}
-                    rows={10}
-                  />
-                  <Textarea
-                    placeholder="Translation"
-                    value={newSong.translation}
-                    onChange={(e) => setNewSong({ ...newSong, translation: e.target.value })}
-                    rows={10}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-semibold mb-2 block">Lyrics</label>
+                      <Textarea
+                        placeholder="Enter lyrics here..."
+                        value={newSong.lyrics}
+                        onChange={(e) => setNewSong({ ...newSong, lyrics: e.target.value })}
+                        rows={10}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold mb-2 block">Translation</label>
+                      <Textarea
+                        placeholder="Enter translation here..."
+                        value={newSong.translation}
+                        onChange={(e) => setNewSong({ ...newSong, translation: e.target.value })}
+                        rows={10}
+                      />
+                    </div>
+                  </div>
                   <Button onClick={handleAddSong} className="w-full">
                     Add Song
                   </Button>
