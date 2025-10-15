@@ -171,21 +171,25 @@ const Music = () => {
                       <p className="text-sm text-muted-foreground">by {song.artist}</p>
                     )}
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {song.lyrics && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">Lyrics</h4>
-                        <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
-                          {song.lyrics}
-                        </pre>
-                      </div>
-                    )}
-                    {song.translation && (
-                      <div className="border-t pt-4">
-                        <h4 className="font-semibold text-sm mb-2">Translation</h4>
-                        <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
-                          {song.translation}
-                        </pre>
+                  <CardContent>
+                    {(song.lyrics || song.translation) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {song.lyrics && (
+                          <div>
+                            <h4 className="font-semibold text-sm mb-2">Lyrics</h4>
+                            <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
+                              {song.lyrics}
+                            </pre>
+                          </div>
+                        )}
+                        {song.translation && (
+                          <div>
+                            <h4 className="font-semibold text-sm mb-2">Translation</h4>
+                            <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
+                              {song.translation}
+                            </pre>
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
