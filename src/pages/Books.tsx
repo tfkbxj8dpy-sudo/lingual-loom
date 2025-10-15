@@ -31,6 +31,7 @@ const Books = () => {
     summary: "",
     rating: 0,
   });
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -86,8 +87,36 @@ const Books = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    let coverUrl = null;
+    
+    // Upload cover image if provided
+    if (coverFile) {
+      const fileExt = coverFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .upload(fileName, coverFile);
+
+      if (uploadError) {
+        toast({
+          title: "Error",
+          description: "Failed to upload cover image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('covers')
+        .getPublicUrl(fileName);
+      
+      coverUrl = publicUrl;
+    }
+
     const { error } = await supabase.from("books").insert({
       ...newBook,
+      cover_url: coverUrl,
       language_id: selectedLanguage,
       user_id: user.id,
     });
@@ -104,7 +133,8 @@ const Books = () => {
         description: "Book added successfully",
       });
       setIsAddOpen(false);
-      setNewBook({ title: "", author: "", review: "", summary: "", rating: 0 });
+      setNewBook({ title: "", author: "", summary: "", review: "", rating: 0 });
+      setCoverFile(null);
       fetchBooks();
     }
   };
@@ -144,6 +174,14 @@ const Books = () => {
                     value={newBook.author}
                     onChange={(e) => setNewBook({ ...newBook, author: e.target.value })}
                   />
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Book Cover</label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
                   <Textarea
                     placeholder="Summary"
                     value={newBook.summary}
@@ -176,6 +214,13 @@ const Books = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {books.map((book) => (
                 <Card key={book.id} className="shadow-card hover:shadow-card-hover transition-shadow">
+                  {book.cover_url && (
+                    <img 
+                      src={book.cover_url} 
+                      alt={book.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                    />
+                  )}
                   <CardHeader>
                     <CardTitle>{book.title}</CardTitle>
                     {book.author && (

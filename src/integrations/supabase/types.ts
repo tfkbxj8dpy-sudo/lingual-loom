@@ -49,6 +49,7 @@ export type Database = {
       books: {
         Row: {
           author: string | null
+          cover_url: string | null
           created_at: string | null
           id: string
           language_id: string
@@ -60,6 +61,7 @@ export type Database = {
         }
         Insert: {
           author?: string | null
+          cover_url?: string | null
           created_at?: string | null
           id?: string
           language_id: string
@@ -71,6 +73,7 @@ export type Database = {
         }
         Update: {
           author?: string | null
+          cover_url?: string | null
           created_at?: string | null
           id?: string
           language_id?: string
@@ -256,6 +259,7 @@ export type Database = {
           created_at: string | null
           id: string
           language_id: string
+          poster_url: string | null
           rating: number | null
           review: string | null
           summary: string | null
@@ -266,6 +270,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           language_id: string
+          poster_url?: string | null
           rating?: number | null
           review?: string | null
           summary?: string | null
@@ -276,6 +281,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           language_id?: string
+          poster_url?: string | null
           rating?: number | null
           review?: string | null
           summary?: string | null
@@ -295,6 +301,7 @@ export type Database = {
       music: {
         Row: {
           artist: string | null
+          cover_url: string | null
           created_at: string | null
           id: string
           language_id: string
@@ -305,6 +312,7 @@ export type Database = {
         }
         Insert: {
           artist?: string | null
+          cover_url?: string | null
           created_at?: string | null
           id?: string
           language_id: string
@@ -315,6 +323,7 @@ export type Database = {
         }
         Update: {
           artist?: string | null
+          cover_url?: string | null
           created_at?: string | null
           id?: string
           language_id?: string

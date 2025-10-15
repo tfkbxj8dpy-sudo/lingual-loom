@@ -30,6 +30,7 @@ const Movies = () => {
     summary: "",
     rating: 0,
   });
+  const [posterFile, setPosterFile] = useState<File | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -85,8 +86,36 @@ const Movies = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    let posterUrl = null;
+    
+    // Upload poster image if provided
+    if (posterFile) {
+      const fileExt = posterFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .upload(fileName, posterFile);
+
+      if (uploadError) {
+        toast({
+          title: "Error",
+          description: "Failed to upload poster image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('covers')
+        .getPublicUrl(fileName);
+      
+      posterUrl = publicUrl;
+    }
+
     const { error } = await supabase.from("movies").insert({
       ...newMovie,
+      poster_url: posterUrl,
       language_id: selectedLanguage,
       user_id: user.id,
     });
@@ -104,6 +133,7 @@ const Movies = () => {
       });
       setIsAddOpen(false);
       setNewMovie({ title: "", review: "", summary: "", rating: 0 });
+      setPosterFile(null);
       fetchMovies();
     }
   };
@@ -138,6 +168,14 @@ const Movies = () => {
                     value={newMovie.title}
                     onChange={(e) => setNewMovie({ ...newMovie, title: e.target.value })}
                   />
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Poster</label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setPosterFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
                   <Textarea
                     placeholder="Summary"
                     value={newMovie.summary}
@@ -170,6 +208,13 @@ const Movies = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {movies.map((movie) => (
                 <Card key={movie.id} className="shadow-card hover:shadow-card-hover transition-shadow">
+                  {movie.poster_url && (
+                    <img 
+                      src={movie.poster_url} 
+                      alt={movie.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                    />
+                  )}
                   <CardHeader>
                     <CardTitle>{movie.title}</CardTitle>
                     {movie.rating > 0 && (

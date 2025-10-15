@@ -30,6 +30,7 @@ const Music = () => {
     lyrics: "",
     translation: "",
   });
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -85,8 +86,36 @@ const Music = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    let coverUrl = null;
+    
+    // Upload cover image if provided
+    if (coverFile) {
+      const fileExt = coverFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .upload(fileName, coverFile);
+
+      if (uploadError) {
+        toast({
+          title: "Error",
+          description: "Failed to upload cover image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('covers')
+        .getPublicUrl(fileName);
+      
+      coverUrl = publicUrl;
+    }
+
     const { error } = await supabase.from("music").insert({
       ...newSong,
+      cover_url: coverUrl,
       language_id: selectedLanguage,
       user_id: user.id,
     });
@@ -104,6 +133,7 @@ const Music = () => {
       });
       setIsAddOpen(false);
       setNewSong({ title: "", artist: "", lyrics: "", translation: "" });
+      setCoverFile(null);
       fetchSongs();
     }
   };
@@ -143,6 +173,14 @@ const Music = () => {
                     value={newSong.artist}
                     onChange={(e) => setNewSong({ ...newSong, artist: e.target.value })}
                   />
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Album Cover</label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-semibold mb-2 block">Lyrics</label>
@@ -173,6 +211,13 @@ const Music = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {songs.map((song) => (
                 <Card key={song.id} className="shadow-card hover:shadow-card-hover transition-shadow">
+                  {song.cover_url && (
+                    <img 
+                      src={song.cover_url} 
+                      alt={song.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                    />
+                  )}
                   <CardHeader>
                     <CardTitle>{song.title}</CardTitle>
                     {song.artist && (
