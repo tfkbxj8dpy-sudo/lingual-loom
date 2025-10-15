@@ -457,9 +457,11 @@ export type Database = {
           definition: string
           difficulty: string | null
           example_sentence: string | null
+          forgot_count: number | null
           id: string
           image_url: string | null
           language_id: string
+          learned: boolean | null
           user_id: string
           word: string
         }
@@ -469,9 +471,11 @@ export type Database = {
           definition: string
           difficulty?: string | null
           example_sentence?: string | null
+          forgot_count?: number | null
           id?: string
           image_url?: string | null
           language_id: string
+          learned?: boolean | null
           user_id: string
           word: string
         }
@@ -481,9 +485,11 @@ export type Database = {
           definition?: string
           difficulty?: string | null
           example_sentence?: string | null
+          forgot_count?: number | null
           id?: string
           image_url?: string | null
           language_id?: string
+          learned?: boolean | null
           user_id?: string
           word?: string
         }
