@@ -5,6 +5,8 @@ interface Language {
   id: string;
   name: string;
   flag_emoji: string;
+  role: "teacher" | "student";
+  teacher_user_id: string | null;
 }
 
 interface LanguageContextType {

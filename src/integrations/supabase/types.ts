@@ -204,6 +204,8 @@ export type Database = {
           flag_emoji: string | null
           id: string
           name: string
+          role: Database["public"]["Enums"]["language_role"] | null
+          teacher_user_id: string | null
           user_id: string
         }
         Insert: {
@@ -211,6 +213,8 @@ export type Database = {
           flag_emoji?: string | null
           id?: string
           name: string
+          role?: Database["public"]["Enums"]["language_role"] | null
+          teacher_user_id?: string | null
           user_id: string
         }
         Update: {
@@ -218,6 +222,8 @@ export type Database = {
           flag_emoji?: string | null
           id?: string
           name?: string
+          role?: Database["public"]["Enums"]["language_role"] | null
+          teacher_user_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -534,7 +540,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      language_role: "teacher" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -661,6 +667,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      language_role: ["teacher", "student"],
+    },
   },
 } as const

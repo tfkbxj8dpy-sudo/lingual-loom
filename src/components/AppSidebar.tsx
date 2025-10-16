@@ -9,6 +9,8 @@ import {
   Languages,
   LogOut,
   Plus,
+  GraduationCap,
+  User,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
   { title: "Dictionary", url: "/dashboard", icon: BookOpen },
@@ -85,7 +88,16 @@ export function AppSidebar() {
               <SelectContent>
                 {languages.map((lang) => (
                   <SelectItem key={lang.id} value={lang.id}>
-                    {lang.flag_emoji} {lang.name}
+                    <div className="flex items-center gap-2">
+                      <span>{lang.flag_emoji} {lang.name}</span>
+                      <Badge variant={lang.role === "teacher" ? "default" : "secondary"} className="text-xs">
+                        {lang.role === "teacher" ? (
+                          <GraduationCap className="w-3 h-3" />
+                        ) : (
+                          <User className="w-3 h-3" />
+                        )}
+                      </Badge>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
