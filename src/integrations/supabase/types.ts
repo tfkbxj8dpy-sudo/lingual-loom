@@ -531,11 +531,15 @@ export type Database = {
     }
     Functions: {
       create_starter_language_data: {
-        Args: {
-          p_flag_emoji: string
-          p_language_name: string
-          p_user_id: string
-        }
+        Args:
+          | {
+              p_flag_emoji: string
+              p_language_name: string
+              p_role?: Database["public"]["Enums"]["language_role"]
+              p_teacher_user_id?: string
+              p_user_id: string
+            }
+          | { p_flag_emoji: string; p_language_name: string; p_user_id: string }
         Returns: string
       }
     }
