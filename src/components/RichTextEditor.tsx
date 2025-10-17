@@ -16,6 +16,12 @@ import {
   Undo,
   Redo
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface RichTextEditorProps {
   content: string;
@@ -30,6 +36,15 @@ export const RichTextEditor = ({
   placeholder = "Start typing...",
   minHeight = "150px"
 }: RichTextEditorProps) => {
+  const highlightColors = [
+    { name: 'Yellow', color: '#ffc078' },
+    { name: 'Green', color: '#8ce99a' },
+    { name: 'Blue', color: '#74c0fc' },
+    { name: 'Pink', color: '#faa2c1' },
+    { name: 'Purple', color: '#d0bfff' },
+    { name: 'Orange', color: '#ffa94d' },
+  ];
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -103,12 +118,41 @@ export const RichTextEditor = ({
           icon={Strikethrough}
           title="Strikethrough"
         />
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHighlight({ color: '#ffc078' }).run()}
-          isActive={editor.isActive('highlight')}
-          icon={Highlighter}
-          title="Highlight"
-        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant={editor.isActive('highlight') ? "default" : "ghost"}
+              size="sm"
+              title="Highlight"
+              className="h-8 w-8 p-0"
+            >
+              <Highlighter className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {highlightColors.map((color) => (
+              <DropdownMenuItem
+                key={color.color}
+                onClick={() => editor.chain().focus().toggleHighlight({ color: color.color }).run()}
+                className="flex items-center gap-2"
+              >
+                <div 
+                  className="w-4 h-4 rounded border border-border" 
+                  style={{ backgroundColor: color.color }}
+                />
+                <span>{color.name}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuItem
+              onClick={() => editor.chain().focus().unsetHighlight().run()}
+              className="flex items-center gap-2"
+            >
+              <div className="w-4 h-4 rounded border border-border bg-background" />
+              <span>Remove Highlight</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <div className="w-px h-8 bg-border mx-1" />
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}

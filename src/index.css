@@ -172,10 +172,34 @@ All colors MUST be HSL.
 }
 
 .ProseMirror mark {
-  background-color: hsl(var(--warning) / 0.3);
   padding: 0.125em 0.25em;
   border-radius: 0.25em;
 }
+
+.ProseMirror mark[data-color="#ffc078"] {
+  background-color: #ffc078;
+}
+
+.ProseMirror mark[data-color="#8ce99a"] {
+  background-color: #8ce99a;
+}
+
+.ProseMirror mark[data-color="#74c0fc"] {
+  background-color: #74c0fc;
+}
+
+.ProseMirror mark[data-color="#faa2c1"] {
+  background-color: #faa2c1;
+}
+
+.ProseMirror mark[data-color="#d0bfff"] {
+  background-color: #d0bfff;
+}
+
+.ProseMirror mark[data-color="#ffa94d"] {
+  background-color: #ffa94d;
+}
+
 
 .ProseMirror code {
   background-color: hsl(var(--muted));
@@ -211,9 +235,32 @@ All colors MUST be HSL.
 }
 
 .prose mark {
-  background-color: hsl(var(--warning) / 0.3);
   padding: 0.125em 0.25em;
   border-radius: 0.25em;
+}
+
+.prose mark[data-color="#ffc078"] {
+  background-color: #ffc078;
+}
+
+.prose mark[data-color="#8ce99a"] {
+  background-color: #8ce99a;
+}
+
+.prose mark[data-color="#74c0fc"] {
+  background-color: #74c0fc;
+}
+
+.prose mark[data-color="#faa2c1"] {
+  background-color: #faa2c1;
+}
+
+.prose mark[data-color="#d0bfff"] {
+  background-color: #d0bfff;
+}
+
+.prose mark[data-color="#ffa94d"] {
+  background-color: #ffa94d;
 }
 
 .prose ul,
