@@ -77,11 +77,11 @@ const Languages = () => {
     
     // If student role and teacher email provided, find the teacher
     if (newLanguage.role === "student" && newLanguage.teacher_email) {
-      const { data: teacherProfile } = await supabase
+      const { data: teacherProfile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
         .eq("username", newLanguage.teacher_email)
-        .single();
+        .maybeSingle();
       
       if (teacherProfile) {
         teacherUserId = teacherProfile.id;
@@ -89,7 +89,6 @@ const Languages = () => {
         toast({
           title: "Warning",
           description: "Teacher email not found. Language will be added without connection.",
-          variant: "destructive",
         });
       }
     }
