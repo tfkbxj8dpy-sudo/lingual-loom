@@ -384,6 +384,39 @@ export type Database = {
         }
         Relationships: []
       }
+      review_feedback: {
+        Row: {
+          created_at: string
+          feedback: string
+          id: string
+          item_id: string
+          item_type: string
+          student_user_id: string
+          teacher_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feedback: string
+          id?: string
+          item_id: string
+          item_type: string
+          student_user_id: string
+          teacher_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feedback?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          student_user_id?: string
+          teacher_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       speaking_questions: {
         Row: {
           created_at: string | null

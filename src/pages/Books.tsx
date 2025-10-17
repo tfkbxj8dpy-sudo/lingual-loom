@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Star } from "lucide-react";
+import { Plus, Star, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -23,7 +23,13 @@ const Books = () => {
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
   const [books, setBooks] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Record<string, any[]>>({});
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [selectedBookId, setSelectedBookId] = useState<string>("");
+  const [selectedBookUserId, setSelectedBookUserId] = useState<string>("");
+  const [feedbackText, setFeedbackText] = useState("");
+  const [isTeacher, setIsTeacher] = useState(false);
   const [newBook, setNewBook] = useState({
     title: "",
     author: "",
@@ -53,6 +59,18 @@ const Books = () => {
     return () => subscription.unsubscribe();
   }, [navigate, selectedLanguage]);
 
+  const checkIfTeacher = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: languages } = await supabase
+      .from("languages")
+      .select("role")
+      .eq("user_id", user.id);
+
+    setIsTeacher(languages?.some(l => l.role === "teacher") || false);
+  };
+
   const fetchBooks = async () => {
     if (!selectedLanguage) return;
 
@@ -62,7 +80,30 @@ const Books = () => {
       .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
 
-    if (data) setBooks(data);
+    if (data) {
+      setBooks(data);
+      
+      // Fetch feedback for all books
+      const bookIds = data.map(b => b.id);
+      const { data: feedbackData } = await supabase
+        .from("review_feedback")
+        .select("*")
+        .eq("item_type", "book")
+        .in("item_id", bookIds);
+      
+      if (feedbackData) {
+        const feedbackByBook: Record<string, any[]> = {};
+        feedbackData.forEach(fb => {
+          if (!feedbackByBook[fb.item_id]) {
+            feedbackByBook[fb.item_id] = [];
+          }
+          feedbackByBook[fb.item_id].push(fb);
+        });
+        setFeedbacks(feedbackByBook);
+      }
+    }
+    
+    await checkIfTeacher();
   };
 
   const handleAddBook = async () => {
@@ -135,6 +176,44 @@ const Books = () => {
       setIsAddOpen(false);
       setNewBook({ title: "", author: "", summary: "", review: "", rating: 0 });
       setCoverFile(null);
+      fetchBooks();
+    }
+  };
+
+  const handleAddFeedback = async () => {
+    if (!feedbackText.trim()) {
+      toast({
+        title: "Error",
+        description: "Feedback cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("review_feedback").insert({
+      student_user_id: selectedBookUserId,
+      teacher_user_id: user.id,
+      item_type: "book",
+      item_id: selectedBookId,
+      feedback: feedbackText,
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add feedback",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Feedback added successfully",
+      });
+      setIsFeedbackOpen(false);
+      setFeedbackText("");
       fetchBooks();
     }
   };
@@ -252,10 +331,59 @@ const Books = () => {
                         <p className="text-sm text-muted-foreground">{book.review}</p>
                       </div>
                     )}
+                    
+                    {feedbacks[book.id] && feedbacks[book.id].length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <h4 className="font-semibold text-sm">Teacher Feedback</h4>
+                        {feedbacks[book.id].map((fb) => (
+                          <div key={fb.id} className="bg-muted/50 p-3 rounded-lg">
+                            <p className="text-sm text-muted-foreground">{fb.feedback}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(fb.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {isTeacher && (book.summary || book.review) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-3"
+                        onClick={() => {
+                          setSelectedBookId(book.id);
+                          setSelectedBookUserId(book.user_id);
+                          setIsFeedbackOpen(true);
+                        }}
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Add Feedback
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
+            
+            <Dialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Feedback to Review</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Write your feedback here..."
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    rows={6}
+                  />
+                  <Button onClick={handleAddFeedback} className="w-full">
+                    Submit Feedback
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </main>
       </div>

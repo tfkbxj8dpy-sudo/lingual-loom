@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -23,7 +23,13 @@ const Music = () => {
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
   const [songs, setSongs] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Record<string, any[]>>({});
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [selectedSongId, setSelectedSongId] = useState<string>("");
+  const [selectedSongUserId, setSelectedSongUserId] = useState<string>("");
+  const [feedbackText, setFeedbackText] = useState("");
+  const [isTeacher, setIsTeacher] = useState(false);
   const [newSong, setNewSong] = useState({
     title: "",
     artist: "",
@@ -52,6 +58,18 @@ const Music = () => {
     return () => subscription.unsubscribe();
   }, [navigate, selectedLanguage]);
 
+  const checkIfTeacher = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: languages } = await supabase
+      .from("languages")
+      .select("role")
+      .eq("user_id", user.id);
+
+    setIsTeacher(languages?.some(l => l.role === "teacher") || false);
+  };
+
   const fetchSongs = async () => {
     if (!selectedLanguage) return;
 
@@ -61,7 +79,30 @@ const Music = () => {
       .eq("language_id", selectedLanguage)
       .order("created_at", { ascending: false });
 
-    if (data) setSongs(data);
+    if (data) {
+      setSongs(data);
+      
+      // Fetch feedback for all songs
+      const songIds = data.map(s => s.id);
+      const { data: feedbackData } = await supabase
+        .from("review_feedback")
+        .select("*")
+        .eq("item_type", "music")
+        .in("item_id", songIds);
+      
+      if (feedbackData) {
+        const feedbackBySong: Record<string, any[]> = {};
+        feedbackData.forEach(fb => {
+          if (!feedbackBySong[fb.item_id]) {
+            feedbackBySong[fb.item_id] = [];
+          }
+          feedbackBySong[fb.item_id].push(fb);
+        });
+        setFeedbacks(feedbackBySong);
+      }
+    }
+    
+    await checkIfTeacher();
   };
 
   const handleAddSong = async () => {
@@ -134,6 +175,44 @@ const Music = () => {
       setIsAddOpen(false);
       setNewSong({ title: "", artist: "", lyrics: "", translation: "" });
       setCoverFile(null);
+      fetchSongs();
+    }
+  };
+
+  const handleAddFeedback = async () => {
+    if (!feedbackText.trim()) {
+      toast({
+        title: "Error",
+        description: "Feedback cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("review_feedback").insert({
+      student_user_id: selectedSongUserId,
+      teacher_user_id: user.id,
+      item_type: "music",
+      item_id: selectedSongId,
+      feedback: feedbackText,
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add feedback",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Feedback added successfully",
+      });
+      setIsFeedbackOpen(false);
+      setFeedbackText("");
       fetchSongs();
     }
   };
@@ -245,10 +324,59 @@ const Music = () => {
                         )}
                       </div>
                     )}
+                    
+                    {feedbacks[song.id] && feedbacks[song.id].length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <h4 className="font-semibold text-sm">Teacher Feedback</h4>
+                        {feedbacks[song.id].map((fb) => (
+                          <div key={fb.id} className="bg-muted/50 p-3 rounded-lg">
+                            <p className="text-sm text-muted-foreground">{fb.feedback}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(fb.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {isTeacher && (song.lyrics || song.translation) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-3"
+                        onClick={() => {
+                          setSelectedSongId(song.id);
+                          setSelectedSongUserId(song.user_id);
+                          setIsFeedbackOpen(true);
+                        }}
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Add Feedback
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
+            
+            <Dialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Feedback to Translation</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Write your feedback here..."
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    rows={6}
+                  />
+                  <Button onClick={handleAddFeedback} className="w-full">
+                    Submit Feedback
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </main>
       </div>
