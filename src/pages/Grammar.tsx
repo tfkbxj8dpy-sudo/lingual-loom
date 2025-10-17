@@ -44,7 +44,7 @@ const Grammar = () => {
     exercise_type: "open_ended" as "open_ended" | "multiple_choice" | "fill_blank" | "true_false",
     options: [] as string[],
     sentences: [] as string[],
-    questions: [] as Array<{ question: string; answer: string }>,
+    questions: [] as Array<{ question: string; answer: string; options?: string[] }>,
   });
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
 
@@ -444,12 +444,13 @@ const Grammar = () => {
                               {/* Additional questions */}
                               {exercise.questions && exercise.questions.length > 0 && (
                                 <div className="space-y-3">
-                                  {exercise.questions.map((q: { question: string; answer: string }, qIdx: number) => {
+                                  {exercise.questions.map((q: { question: string; answer: string; options?: string[] }, qIdx: number) => {
                                     const questionId = `${exercise.id}-q${qIdx}`;
+                                    const questionExercise = q.options ? { ...exercise, options: q.options } : exercise;
                                     return (
                                       <div key={qIdx} className="space-y-3 p-3 rounded-lg bg-background/50">
                                         <p className="text-sm font-medium">{q.question}</p>
-                                        {renderExerciseInput(exercise, questionId, q.answer)}
+                                        {renderExerciseInput(questionExercise, questionId, q.answer)}
                                       </div>
                                     );
                                   })}
@@ -602,9 +603,13 @@ const Grammar = () => {
                             });
                             return;
                           }
+                          const newQuestion: { question: string; answer: string; options?: string[] } = 
+                            newExercise.exercise_type === "multiple_choice" 
+                              ? { question: "", answer: "", options: [] }
+                              : { question: "", answer: "" };
                           setNewExercise({
                             ...newExercise,
-                            questions: [...newExercise.questions, { question: "", answer: "" }]
+                            questions: [...newExercise.questions, newQuestion]
                           });
                         }}
                       >
@@ -614,7 +619,7 @@ const Grammar = () => {
                     </div>
                     
                     {newExercise.questions.map((q, idx) => (
-                      <Card key={idx} className="p-3 space-y-2">
+                      <Card key={idx} className="p-3 space-y-3">
                         <div className="flex items-center justify-between">
                           <Label className="text-xs">Question {idx + 2}</Label>
                           <Button
@@ -630,7 +635,7 @@ const Grammar = () => {
                             <X className="w-3 h-3" />
                           </Button>
                         </div>
-                        <Input
+                        <Textarea
                           placeholder="Question"
                           value={q.question}
                           onChange={(e) => {
@@ -638,16 +643,85 @@ const Grammar = () => {
                             updated[idx].question = e.target.value;
                             setNewExercise({ ...newExercise, questions: updated });
                           }}
+                          rows={2}
                         />
-                        <Input
-                          placeholder="Answer"
-                          value={q.answer}
-                          onChange={(e) => {
-                            const updated = [...newExercise.questions];
-                            updated[idx].answer = e.target.value;
-                            setNewExercise({ ...newExercise, questions: updated });
-                          }}
-                        />
+                        
+                        {newExercise.exercise_type === "multiple_choice" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Options (one per line)</Label>
+                              <Textarea
+                                placeholder="Enter options, one per line"
+                                value={(q.options || []).join("\n")}
+                                onChange={(e) => {
+                                  const updated = [...newExercise.questions];
+                                  updated[idx].options = e.target.value.split("\n");
+                                  setNewExercise({ ...newExercise, questions: updated });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.stopPropagation();
+                                  }
+                                }}
+                                rows={3}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Correct Answer</Label>
+                              {q.options && q.options.length > 0 && q.options.some(o => o.trim()) ? (
+                                <RadioGroup 
+                                  value={q.answer}
+                                  onValueChange={(value) => {
+                                    const updated = [...newExercise.questions];
+                                    updated[idx].answer = value;
+                                    setNewExercise({ ...newExercise, questions: updated });
+                                  }}
+                                >
+                                  {q.options.filter(o => o.trim()).map((option, optIdx) => (
+                                    <div key={optIdx} className="flex items-center space-x-2">
+                                      <RadioGroupItem value={option} id={`q${idx}-answer-${optIdx}`} />
+                                      <Label htmlFor={`q${idx}-answer-${optIdx}`}>{option}</Label>
+                                    </div>
+                                  ))}
+                                </RadioGroup>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">Add options above first</p>
+                              )}
+                            </div>
+                          </>
+                        )}
+                        
+                        {newExercise.exercise_type === "true_false" && (
+                          <RadioGroup 
+                            value={q.answer}
+                            onValueChange={(value) => {
+                              const updated = [...newExercise.questions];
+                              updated[idx].answer = value;
+                              setNewExercise({ ...newExercise, questions: updated });
+                            }}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="true" id={`q${idx}-answer-true`} />
+                              <Label htmlFor={`q${idx}-answer-true`}>True</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="false" id={`q${idx}-answer-false`} />
+                              <Label htmlFor={`q${idx}-answer-false`}>False</Label>
+                            </div>
+                          </RadioGroup>
+                        )}
+                        
+                        {(newExercise.exercise_type === "fill_blank" || newExercise.exercise_type === "open_ended") && (
+                          <Input
+                            placeholder="Correct answer"
+                            value={q.answer}
+                            onChange={(e) => {
+                              const updated = [...newExercise.questions];
+                              updated[idx].answer = e.target.value;
+                              setNewExercise({ ...newExercise, questions: updated });
+                            }}
+                          />
+                        )}
                       </Card>
                     ))}
                   </div>
