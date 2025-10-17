@@ -132,24 +132,30 @@ export type Database = {
         Row: {
           answer: string
           created_at: string | null
+          exercise_type: string | null
           explanation: string | null
           id: string
+          options: Json | null
           question: string
           rule_id: string
         }
         Insert: {
           answer: string
           created_at?: string | null
+          exercise_type?: string | null
           explanation?: string | null
           id?: string
+          options?: Json | null
           question: string
           rule_id: string
         }
         Update: {
           answer?: string
           created_at?: string | null
+          exercise_type?: string | null
           explanation?: string | null
           id?: string
+          options?: Json | null
           question?: string
           rule_id?: string
         }
@@ -168,6 +174,7 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          image_url: string | null
           language_id: string
           title: string
           user_id: string
@@ -176,6 +183,7 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           language_id: string
           title: string
           user_id: string
@@ -184,6 +192,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           language_id?: string
           title?: string
           user_id?: string
