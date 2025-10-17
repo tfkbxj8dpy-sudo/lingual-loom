@@ -137,6 +137,7 @@ export type Database = {
           id: string
           options: Json | null
           question: string
+          questions: Json | null
           rule_id: string
           sentences: string[] | null
         }
@@ -148,6 +149,7 @@ export type Database = {
           id?: string
           options?: Json | null
           question: string
+          questions?: Json | null
           rule_id: string
           sentences?: string[] | null
         }
@@ -159,6 +161,7 @@ export type Database = {
           id?: string
           options?: Json | null
           question?: string
+          questions?: Json | null
           rule_id?: string
           sentences?: string[] | null
         }

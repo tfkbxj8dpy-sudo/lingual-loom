@@ -44,6 +44,7 @@ const Grammar = () => {
     exercise_type: "open_ended" as "open_ended" | "multiple_choice" | "fill_blank" | "true_false",
     options: [] as string[],
     sentences: [] as string[],
+    questions: [] as Array<{ question: string; answer: string }>,
   });
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
 
@@ -167,10 +168,23 @@ const Grammar = () => {
   };
 
   const handleAddExercise = async () => {
-    if (!newExercise.question || !newExercise.answer || !selectedRuleId) {
+    // Check if we have either the main question or additional questions
+    const hasMainQuestion = newExercise.question && newExercise.answer;
+    const hasAdditionalQuestions = newExercise.questions.length > 0;
+    
+    if (!hasMainQuestion && !hasAdditionalQuestions) {
       toast({
         title: "Error",
-        description: "Question and answer are required",
+        description: "At least one question and answer are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedRuleId) {
+      toast({
+        title: "Error",
+        description: "Please select a grammar rule first",
         variant: "destructive",
       });
       return;
@@ -192,6 +206,7 @@ const Grammar = () => {
       exercise_type: newExercise.exercise_type,
       options: newExercise.exercise_type === "multiple_choice" ? newExercise.options : null,
       sentences: newExercise.sentences.filter(s => s.trim()),
+      questions: newExercise.questions,
       rule_id: selectedRuleId,
     });
 
@@ -214,6 +229,7 @@ const Grammar = () => {
         exercise_type: "open_ended",
         options: [],
         sentences: [],
+        questions: [],
       });
       setSelectedRuleId("");
       fetchRules();
@@ -222,6 +238,69 @@ const Grammar = () => {
 
   const checkAnswer = (exerciseId: string, userAnswer: string, correctAnswer: string) => {
     return userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+  };
+
+  const renderExerciseInput = (exercise: any, questionId: string, correctAnswer: string) => {
+    const userAnswer = userAnswers[questionId] || "";
+    const isCorrect = userAnswer && checkAnswer(questionId, userAnswer, correctAnswer);
+    
+    return (
+      <>
+        {exercise.exercise_type === "multiple_choice" && exercise.options && (
+          <RadioGroup 
+            value={userAnswer}
+            onValueChange={(value) => setUserAnswers({ ...userAnswers, [questionId]: value })}
+          >
+            {exercise.options.map((option: string, idx: number) => (
+              <div key={idx} className="flex items-center space-x-2">
+                <RadioGroupItem value={option} id={`${questionId}-${idx}`} />
+                <Label htmlFor={`${questionId}-${idx}`}>{option}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        )}
+        
+        {exercise.exercise_type === "true_false" && (
+          <RadioGroup 
+            value={userAnswer}
+            onValueChange={(value) => setUserAnswers({ ...userAnswers, [questionId]: value })}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="true" id={`${questionId}-true`} />
+              <Label htmlFor={`${questionId}-true`}>True</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="false" id={`${questionId}-false`} />
+              <Label htmlFor={`${questionId}-false`}>False</Label>
+            </div>
+          </RadioGroup>
+        )}
+        
+        {(exercise.exercise_type === "fill_blank" || exercise.exercise_type === "open_ended" || !exercise.exercise_type) && (
+          <Input
+            placeholder="Type your answer here..."
+            value={userAnswer}
+            onChange={(e) => setUserAnswers({ ...userAnswers, [questionId]: e.target.value })}
+          />
+        )}
+        
+        {userAnswer && (
+          <div className={`flex items-center gap-2 p-2 rounded ${isCorrect ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+            {isCorrect ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+            <span className="text-sm font-medium">
+              {isCorrect ? "Correct!" : "Incorrect"}
+            </span>
+          </div>
+        )}
+        
+        <details className="text-sm">
+          <summary className="cursor-pointer text-primary">Show answer</summary>
+          <p className="mt-2 pl-4 border-l-2 border-success">
+            {correctAnswer}
+          </p>
+        </details>
+      </>
+    );
   };
 
   return (
@@ -333,10 +412,6 @@ const Grammar = () => {
                     </Button>
                     <div className="space-y-2">
                       {rule.grammar_exercises?.map((exercise: any, index: number) => {
-                        const exerciseId = exercise.id;
-                        const userAnswer = userAnswers[exerciseId] || "";
-                        const isCorrect = userAnswer && checkAnswer(exerciseId, userAnswer, exercise.answer);
-                        
                         return (
                           <Card key={exercise.id} className="bg-muted/50">
                             <CardHeader>
@@ -347,11 +422,9 @@ const Grammar = () => {
                                 </span>
                               </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-3">
-                              <p className="text-sm font-medium">{exercise.question}</p>
-                              
+                            <CardContent className="space-y-4">
                               {exercise.sentences && exercise.sentences.length > 0 && (
-                                <div className="space-y-2 mt-3">
+                                <div className="space-y-2">
                                   {exercise.sentences.map((sentence: string, idx: number) => (
                                     <p key={idx} className="text-sm text-muted-foreground pl-4 border-l-2 border-primary/30">
                                       {sentence}
@@ -360,62 +433,32 @@ const Grammar = () => {
                                 </div>
                               )}
                               
-                              {exercise.exercise_type === "multiple_choice" && exercise.options && (
-                                <RadioGroup 
-                                  value={userAnswer}
-                                  onValueChange={(value) => setUserAnswers({ ...userAnswers, [exerciseId]: value })}
-                                >
-                                  {exercise.options.map((option: string, idx: number) => (
-                                    <div key={idx} className="flex items-center space-x-2">
-                                      <RadioGroupItem value={option} id={`${exerciseId}-${idx}`} />
-                                      <Label htmlFor={`${exerciseId}-${idx}`}>{option}</Label>
-                                    </div>
-                                  ))}
-                                </RadioGroup>
-                              )}
-                              
-                              {exercise.exercise_type === "true_false" && (
-                                <RadioGroup 
-                                  value={userAnswer}
-                                  onValueChange={(value) => setUserAnswers({ ...userAnswers, [exerciseId]: value })}
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="true" id={`${exerciseId}-true`} />
-                                    <Label htmlFor={`${exerciseId}-true`}>True</Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="false" id={`${exerciseId}-false`} />
-                                    <Label htmlFor={`${exerciseId}-false`}>False</Label>
-                                  </div>
-                                </RadioGroup>
-                              )}
-                              
-                              {(exercise.exercise_type === "fill_blank" || exercise.exercise_type === "open_ended" || !exercise.exercise_type) && (
-                                <Input
-                                  placeholder="Type your answer here..."
-                                  value={userAnswer}
-                                  onChange={(e) => setUserAnswers({ ...userAnswers, [exerciseId]: e.target.value })}
-                                />
-                              )}
-                              
-                              {userAnswer && (
-                                <div className={`flex items-center gap-2 p-2 rounded ${isCorrect ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-                                  {isCorrect ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                                  <span className="text-sm font-medium">
-                                    {isCorrect ? "Correct!" : "Incorrect"}
-                                  </span>
+                              {/* Main question */}
+                              {exercise.question && (
+                                <div className="space-y-3 p-3 rounded-lg bg-background/50">
+                                  <p className="text-sm font-medium">{exercise.question}</p>
+                                  {renderExerciseInput(exercise, exercise.id, exercise.answer)}
                                 </div>
                               )}
                               
-                              <details className="text-sm">
-                                <summary className="cursor-pointer text-primary">Show answer</summary>
-                                <p className="mt-2 pl-4 border-l-2 border-success">
-                                  {exercise.answer}
-                                </p>
-                                {exercise.explanation && (
-                                  <p className="mt-2 text-muted-foreground">{exercise.explanation}</p>
-                                )}
-                              </details>
+                              {/* Additional questions */}
+                              {exercise.questions && exercise.questions.length > 0 && (
+                                <div className="space-y-3">
+                                  {exercise.questions.map((q: { question: string; answer: string }, qIdx: number) => {
+                                    const questionId = `${exercise.id}-q${qIdx}`;
+                                    return (
+                                      <div key={qIdx} className="space-y-3 p-3 rounded-lg bg-background/50">
+                                        <p className="text-sm font-medium">{q.question}</p>
+                                        {renderExerciseInput(exercise, questionId, q.answer)}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              
+                              {exercise.explanation && (
+                                <p className="text-sm text-muted-foreground">{exercise.explanation}</p>
+                              )}
                             </CardContent>
                           </Card>
                         );
@@ -543,6 +586,72 @@ const Grammar = () => {
                     value={newExercise.explanation}
                     onChange={(e) => setNewExercise({ ...newExercise, explanation: e.target.value })}
                   />
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Additional Questions</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (!newExercise.question || !newExercise.answer) {
+                            toast({
+                              title: "Info",
+                              description: "Add main question first, then you can add more questions",
+                            });
+                            return;
+                          }
+                          setNewExercise({
+                            ...newExercise,
+                            questions: [...newExercise.questions, { question: "", answer: "" }]
+                          });
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Question
+                      </Button>
+                    </div>
+                    
+                    {newExercise.questions.map((q, idx) => (
+                      <Card key={idx} className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Question {idx + 2}</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              const updated = newExercise.questions.filter((_, i) => i !== idx);
+                              setNewExercise({ ...newExercise, questions: updated });
+                            }}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        <Input
+                          placeholder="Question"
+                          value={q.question}
+                          onChange={(e) => {
+                            const updated = [...newExercise.questions];
+                            updated[idx].question = e.target.value;
+                            setNewExercise({ ...newExercise, questions: updated });
+                          }}
+                        />
+                        <Input
+                          placeholder="Answer"
+                          value={q.answer}
+                          onChange={(e) => {
+                            const updated = [...newExercise.questions];
+                            updated[idx].answer = e.target.value;
+                            setNewExercise({ ...newExercise, questions: updated });
+                          }}
+                        />
+                      </Card>
+                    ))}
+                  </div>
+                  
                   <Button onClick={handleAddExercise} className="w-full">
                     Add Exercise
                   </Button>
