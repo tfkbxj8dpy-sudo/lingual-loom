@@ -138,6 +138,7 @@ export type Database = {
           options: Json | null
           question: string
           rule_id: string
+          sentences: string[] | null
         }
         Insert: {
           answer: string
@@ -148,6 +149,7 @@ export type Database = {
           options?: Json | null
           question: string
           rule_id: string
+          sentences?: string[] | null
         }
         Update: {
           answer?: string
@@ -158,6 +160,7 @@ export type Database = {
           options?: Json | null
           question?: string
           rule_id?: string
+          sentences?: string[] | null
         }
         Relationships: [
           {

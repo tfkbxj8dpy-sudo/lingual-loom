@@ -43,6 +43,7 @@ const Grammar = () => {
     explanation: "",
     exercise_type: "open_ended" as "open_ended" | "multiple_choice" | "fill_blank" | "true_false",
     options: [] as string[],
+    sentences: [] as string[],
   });
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
 
@@ -190,6 +191,7 @@ const Grammar = () => {
       explanation: newExercise.explanation,
       exercise_type: newExercise.exercise_type,
       options: newExercise.exercise_type === "multiple_choice" ? newExercise.options : null,
+      sentences: newExercise.sentences.filter(s => s.trim()),
       rule_id: selectedRuleId,
     });
 
@@ -211,6 +213,7 @@ const Grammar = () => {
         explanation: "",
         exercise_type: "open_ended",
         options: [],
+        sentences: [],
       });
       setSelectedRuleId("");
       fetchRules();
@@ -347,6 +350,16 @@ const Grammar = () => {
                             <CardContent className="space-y-3">
                               <p className="text-sm font-medium">{exercise.question}</p>
                               
+                              {exercise.sentences && exercise.sentences.length > 0 && (
+                                <div className="space-y-2 mt-3">
+                                  {exercise.sentences.map((sentence: string, idx: number) => (
+                                    <p key={idx} className="text-sm text-muted-foreground pl-4 border-l-2 border-primary/30">
+                                      {sentence}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                              
                               {exercise.exercise_type === "multiple_choice" && exercise.options && (
                                 <RadioGroup 
                                   value={userAnswer}
@@ -449,6 +462,24 @@ const Grammar = () => {
                     value={newExercise.question}
                     onChange={(e) => setNewExercise({ ...newExercise, question: e.target.value })}
                   />
+                  
+                  <div className="space-y-2">
+                    <Label>Example Sentences (optional, one per line)</Label>
+                    <Textarea
+                      placeholder="Enter example sentences, one per line"
+                      value={newExercise.sentences.join("\n")}
+                      onChange={(e) => setNewExercise({ 
+                        ...newExercise, 
+                        sentences: e.target.value.split("\n")
+                      })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.stopPropagation();
+                        }
+                      }}
+                      rows={3}
+                    />
+                  </div>
                   
                   {newExercise.exercise_type === "multiple_choice" && (
                     <div className="space-y-2">
