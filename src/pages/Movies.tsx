@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Star, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   Dialog,
   DialogContent,
@@ -255,16 +256,24 @@ const Movies = () => {
                       onChange={(e) => setPosterFile(e.target.files?.[0] || null)}
                     />
                   </div>
-                  <Textarea
-                    placeholder="Summary"
-                    value={newMovie.summary}
-                    onChange={(e) => setNewMovie({ ...newMovie, summary: e.target.value })}
-                  />
-                  <Textarea
-                    placeholder="Review (in target language)"
-                    value={newMovie.review}
-                    onChange={(e) => setNewMovie({ ...newMovie, review: e.target.value })}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Summary</label>
+                    <RichTextEditor
+                      content={newMovie.summary}
+                      onChange={(summary) => setNewMovie({ ...newMovie, summary })}
+                      placeholder="Write a summary..."
+                      minHeight="120px"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Review (in target language)</label>
+                    <RichTextEditor
+                      content={newMovie.review}
+                      onChange={(review) => setNewMovie({ ...newMovie, review })}
+                      placeholder="Write your review..."
+                      minHeight="120px"
+                    />
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">Rating:</span>
                     {[1, 2, 3, 4, 5].map((rating) => (
@@ -313,13 +322,19 @@ const Movies = () => {
                     {movie.summary && (
                       <div>
                         <h4 className="font-semibold text-sm mb-1">Summary</h4>
-                        <p className="text-sm text-muted-foreground">{movie.summary}</p>
+                        <div 
+                          className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: movie.summary }}
+                        />
                       </div>
                     )}
                     {movie.review && (
                       <div>
                         <h4 className="font-semibold text-sm mb-1">Review</h4>
-                        <p className="text-sm text-muted-foreground">{movie.review}</p>
+                        <div 
+                          className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: movie.review }}
+                        />
                       </div>
                     )}
                     
@@ -328,7 +343,10 @@ const Movies = () => {
                         <h4 className="font-semibold text-sm">Teacher Feedback</h4>
                         {feedbacks[movie.id].map((fb) => (
                           <div key={fb.id} className="bg-muted/50 p-3 rounded-lg">
-                            <p className="text-sm text-muted-foreground">{fb.feedback}</p>
+                            <div 
+                              className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: fb.feedback }}
+                            />
                             <p className="text-xs text-muted-foreground mt-1">
                               {new Date(fb.created_at).toLocaleDateString()}
                             </p>
@@ -363,11 +381,11 @@ const Movies = () => {
                   <DialogTitle>Add Feedback to Review</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <Textarea
+                  <RichTextEditor
+                    content={feedbackText}
+                    onChange={setFeedbackText}
                     placeholder="Write your feedback here..."
-                    value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
-                    rows={6}
+                    minHeight="150px"
                   />
                   <Button onClick={handleAddFeedback} className="w-full">
                     Submit Feedback

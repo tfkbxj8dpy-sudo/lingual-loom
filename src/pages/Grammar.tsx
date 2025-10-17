@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   Dialog,
   DialogContent,
@@ -333,12 +334,15 @@ const Grammar = () => {
                     value={newRule.title}
                     onChange={(e) => setNewRule({ ...newRule, title: e.target.value })}
                   />
-                  <Textarea
-                    placeholder="Rule explanation and examples"
-                    value={newRule.content}
-                    onChange={(e) => setNewRule({ ...newRule, content: e.target.value })}
-                    rows={8}
-                  />
+                  <div className="space-y-2">
+                    <Label>Rule explanation and examples</Label>
+                    <RichTextEditor
+                      content={newRule.content}
+                      onChange={(content) => setNewRule({ ...newRule, content })}
+                      placeholder="Explain the grammar rule with examples..."
+                      minHeight="200px"
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label>Image (optional)</Label>
                     <div className="flex gap-2">
@@ -395,9 +399,10 @@ const Grammar = () => {
                       />
                     )}
                     <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap font-sans text-sm text-muted-foreground">
-                        {rule.content}
-                      </pre>
+                      <div 
+                        className="text-sm text-muted-foreground"
+                        dangerouslySetInnerHTML={{ __html: rule.content }}
+                      />
                     </div>
                     <Button
                       variant="outline"
@@ -436,7 +441,10 @@ const Grammar = () => {
                               {/* Main question */}
                               {exercise.question && (
                                 <div className="space-y-3 p-3 rounded-lg bg-background/50">
-                                  <p className="text-sm font-medium">{exercise.question}</p>
+                                  <div 
+                                    className="text-sm font-medium prose prose-sm max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: exercise.question }}
+                                  />
                                   {renderExerciseInput(exercise, exercise.id, exercise.answer)}
                                 </div>
                               )}
@@ -449,7 +457,10 @@ const Grammar = () => {
                                     const questionExercise = q.options ? { ...exercise, options: q.options } : exercise;
                                     return (
                                       <div key={qIdx} className="space-y-3 p-3 rounded-lg bg-background/50">
-                                        <p className="text-sm font-medium">{q.question}</p>
+                                        <div 
+                                          className="text-sm font-medium prose prose-sm max-w-none"
+                                          dangerouslySetInnerHTML={{ __html: q.question }}
+                                        />
                                         {renderExerciseInput(questionExercise, questionId, q.answer)}
                                       </div>
                                     );
@@ -458,7 +469,10 @@ const Grammar = () => {
                               )}
                               
                               {exercise.explanation && (
-                                <p className="text-sm text-muted-foreground">{exercise.explanation}</p>
+                                <div 
+                                  className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: exercise.explanation }}
+                                />
                               )}
                             </CardContent>
                           </Card>
@@ -501,11 +515,15 @@ const Grammar = () => {
                     </RadioGroup>
                   </div>
                   
-                  <Textarea
-                    placeholder="Question"
-                    value={newExercise.question}
-                    onChange={(e) => setNewExercise({ ...newExercise, question: e.target.value })}
-                  />
+                  <div className="space-y-2">
+                    <Label>Question</Label>
+                    <RichTextEditor
+                      content={newExercise.question}
+                      onChange={(content) => setNewExercise({ ...newExercise, question: content })}
+                      placeholder="Enter the question..."
+                      minHeight="120px"
+                    />
+                  </div>
                   
                   <div className="space-y-2">
                     <Label>Example Sentences (optional, one per line)</Label>
@@ -582,11 +600,15 @@ const Grammar = () => {
                     )}
                   </div>
                   
-                  <Textarea
-                    placeholder="Explanation (optional)"
-                    value={newExercise.explanation}
-                    onChange={(e) => setNewExercise({ ...newExercise, explanation: e.target.value })}
-                  />
+                  <div className="space-y-2">
+                    <Label>Explanation (optional)</Label>
+                    <RichTextEditor
+                      content={newExercise.explanation}
+                      onChange={(content) => setNewExercise({ ...newExercise, explanation: content })}
+                      placeholder="Explain the answer..."
+                      minHeight="100px"
+                    />
+                  </div>
                   
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">

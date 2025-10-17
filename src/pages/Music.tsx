@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   Dialog,
   DialogContent,
@@ -261,22 +262,22 @@ const Music = () => {
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-semibold mb-2 block">Lyrics</label>
-                      <Textarea
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">Lyrics</label>
+                      <RichTextEditor
+                        content={newSong.lyrics}
+                        onChange={(lyrics) => setNewSong({ ...newSong, lyrics })}
                         placeholder="Enter lyrics here..."
-                        value={newSong.lyrics}
-                        onChange={(e) => setNewSong({ ...newSong, lyrics: e.target.value })}
-                        rows={10}
+                        minHeight="200px"
                       />
                     </div>
-                    <div>
-                      <label className="text-sm font-semibold mb-2 block">Translation</label>
-                      <Textarea
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">Translation</label>
+                      <RichTextEditor
+                        content={newSong.translation}
+                        onChange={(translation) => setNewSong({ ...newSong, translation })}
                         placeholder="Enter translation here..."
-                        value={newSong.translation}
-                        onChange={(e) => setNewSong({ ...newSong, translation: e.target.value })}
-                        rows={10}
+                        minHeight="200px"
                       />
                     </div>
                   </div>
@@ -309,17 +310,19 @@ const Music = () => {
                         {song.lyrics && (
                           <div>
                             <h4 className="font-semibold text-sm mb-2">Lyrics</h4>
-                            <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
-                              {song.lyrics}
-                            </pre>
+                            <div 
+                              className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: song.lyrics }}
+                            />
                           </div>
                         )}
                         {song.translation && (
                           <div>
                             <h4 className="font-semibold text-sm mb-2">Translation</h4>
-                            <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
-                              {song.translation}
-                            </pre>
+                            <div 
+                              className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: song.translation }}
+                            />
                           </div>
                         )}
                       </div>
@@ -330,7 +333,10 @@ const Music = () => {
                         <h4 className="font-semibold text-sm">Teacher Feedback</h4>
                         {feedbacks[song.id].map((fb) => (
                           <div key={fb.id} className="bg-muted/50 p-3 rounded-lg">
-                            <p className="text-sm text-muted-foreground">{fb.feedback}</p>
+                            <div 
+                              className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: fb.feedback }}
+                            />
                             <p className="text-xs text-muted-foreground mt-1">
                               {new Date(fb.created_at).toLocaleDateString()}
                             </p>
@@ -365,11 +371,11 @@ const Music = () => {
                   <DialogTitle>Add Feedback to Translation</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <Textarea
+                  <RichTextEditor
+                    content={feedbackText}
+                    onChange={setFeedbackText}
                     placeholder="Write your feedback here..."
-                    value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
-                    rows={6}
+                    minHeight="150px"
                   />
                   <Button onClick={handleAddFeedback} className="w-full">
                     Submit Feedback
