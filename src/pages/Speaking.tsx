@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Mic, Square, Play, Trash2 } from "lucide-react";
+import { Plus, Mic, Square, Play, Trash2, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   Dialog,
   DialogContent,
@@ -29,9 +30,15 @@ const Speaking = () => {
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
   const [topics, setTopics] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Record<string, any[]>>({});
   const [isAddTopicOpen, setIsAddTopicOpen] = useState(false);
   const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [selectedRecordingId, setSelectedRecordingId] = useState("");
+  const [selectedRecordingUserId, setSelectedRecordingUserId] = useState("");
+  const [feedbackText, setFeedbackText] = useState("");
+  const [isTeacher, setIsTeacher] = useState(false);
   const [newTopic, setNewTopic] = useState("");
   const [newQuestion, setNewQuestion] = useState("");
   const [isRecordingOpen, setIsRecordingOpen] = useState(false);
@@ -62,6 +69,18 @@ const Speaking = () => {
     return () => subscription.unsubscribe();
   }, [navigate, selectedLanguage]);
 
+  const checkIfTeacher = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: languages } = await supabase
+      .from("languages")
+      .select("role")
+      .eq("user_id", user.id);
+
+    setIsTeacher(languages?.some(l => l.role === "teacher") || false);
+  };
+
   const fetchTopics = async () => {
     if (!selectedLanguage) return;
 
@@ -72,6 +91,7 @@ const Speaking = () => {
       .order("created_at", { ascending: false });
     
     if (topicsData) setTopics(topicsData);
+    await checkIfTeacher();
   };
 
   const fetchRecordings = async (questionId: string) => {
@@ -81,7 +101,28 @@ const Speaking = () => {
       .eq("question_id", questionId)
       .order("created_at", { ascending: false });
     
-    if (data) setRecordings(data);
+    if (data) {
+      setRecordings(data);
+      
+      // Fetch feedback for all recordings
+      const recordingIds = data.map(r => r.id);
+      const { data: feedbackData } = await supabase
+        .from("review_feedback")
+        .select("*")
+        .eq("item_type", "speaking")
+        .in("item_id", recordingIds);
+      
+      if (feedbackData) {
+        const feedbackByRecording: Record<string, any[]> = {};
+        feedbackData.forEach(fb => {
+          if (!feedbackByRecording[fb.item_id]) {
+            feedbackByRecording[fb.item_id] = [];
+          }
+          feedbackByRecording[fb.item_id].push(fb);
+        });
+        setFeedbacks(feedbackByRecording);
+      }
+    }
   };
 
   const startRecording = async () => {
@@ -228,6 +269,44 @@ const Speaking = () => {
       setIsAddTopicOpen(false);
       setNewTopic("");
       fetchTopics();
+    }
+  };
+
+  const handleAddFeedback = async () => {
+    if (!feedbackText.trim()) {
+      toast({
+        title: "Error",
+        description: "Feedback cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("review_feedback").insert({
+      student_user_id: selectedRecordingUserId,
+      teacher_user_id: user.id,
+      item_type: "speaking",
+      item_id: selectedRecordingId,
+      feedback: feedbackText,
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add feedback",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Feedback added successfully",
+      });
+      setIsFeedbackOpen(false);
+      setFeedbackText("");
+      fetchRecordings(selectedQuestionId);
     }
   };
 
@@ -407,37 +486,91 @@ const Speaking = () => {
                       ) : (
                         recordings.map((recording) => (
                           <Card key={recording.id}>
-                            <CardContent className="p-3 flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(recording.created_at).toLocaleString()}
-                                </p>
-                                {recording.notes && (
-                                  <p className="text-sm mt-1">{recording.notes}</p>
-                                )}
+                            <CardContent className="p-3 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(recording.created_at).toLocaleString()}
+                                  </p>
+                                  {recording.notes && (
+                                    <p className="text-sm mt-1">{recording.notes}</p>
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => playRecording(recording.recording_url)}
+                                  >
+                                    <Play className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => deleteRecording(recording.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex gap-2">
+                              
+                              {feedbacks[recording.id] && feedbacks[recording.id].length > 0 && (
+                                <div className="space-y-2 border-t pt-3">
+                                  <h5 className="font-semibold text-xs">Teacher Feedback</h5>
+                                  {feedbacks[recording.id].map((fb) => (
+                                    <div key={fb.id} className="bg-muted/50 p-2 rounded-lg">
+                                      <div 
+                                        className="text-xs text-muted-foreground prose prose-sm max-w-none"
+                                        dangerouslySetInnerHTML={{ __html: fb.feedback }}
+                                      />
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {new Date(fb.created_at).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {isTeacher && recording.notes && (
                                 <Button
+                                  variant="outline"
                                   size="sm"
-                                  variant="ghost"
-                                  onClick={() => playRecording(recording.recording_url)}
+                                  className="w-full"
+                                  onClick={() => {
+                                    setSelectedRecordingId(recording.id);
+                                    setSelectedRecordingUserId(recording.user_id);
+                                    setIsFeedbackOpen(true);
+                                  }}
                                 >
-                                  <Play className="w-4 h-4" />
+                                  <MessageSquare className="w-4 h-4 mr-2" />
+                                  Add Feedback
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => deleteRecording(recording.id)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
+                              )}
                             </CardContent>
                           </Card>
                         ))
                       )}
                     </div>
                   </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Feedback to Recording</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <RichTextEditor
+                    content={feedbackText}
+                    onChange={setFeedbackText}
+                    placeholder="Write your feedback here..."
+                    minHeight="150px"
+                  />
+                  <Button onClick={handleAddFeedback} className="w-full">
+                    Submit Feedback
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
