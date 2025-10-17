@@ -458,8 +458,13 @@ const Grammar = () => {
                         value={newExercise.options.join("\n")}
                         onChange={(e) => setNewExercise({ 
                           ...newExercise, 
-                          options: e.target.value.split("\n").filter(o => o.trim()) 
+                          options: e.target.value.split("\n")
                         })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.stopPropagation();
+                          }
+                        }}
                         rows={4}
                       />
                     </div>
